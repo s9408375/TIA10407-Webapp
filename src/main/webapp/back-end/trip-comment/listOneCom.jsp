@@ -45,6 +45,7 @@ th, td {
 	padding: 5px;
 	text-align: center;
 }
+
 img#photo {
 	width: 50%;
 	height: 50%;
@@ -60,7 +61,8 @@ img#photo {
 			<td>
 				<h3>單一行程留言 - listOneCom.jsp</h3>
 				<h4>
-					<a href="select_page.jsp"><img src="<%=request.getContextPath()%>/resource/images/back1.gif"
+					<a href="select_page.jsp"><img
+						src="<%=request.getContextPath()%>/resource/images/back1.gif"
 						width="100" height="32" border="0">回首頁</a>
 				</h4>
 			</td>
@@ -82,8 +84,7 @@ img#photo {
 			<td><%=tripCommentVO.getMemberId()%></td>
 			<td><%=tripCommentVO.getTripId()%></td>
 			<td><%=tripCommentVO.getScore()%></td>
-			<td>
-			<img id="photo" src="data:image/png;base64, ${tripCommentVO.photo_base64}" alt="Red dot" />
+			<td><img id="photo" src="data:image/png;base64, ${tripCommentVO.photo_base64}" alt="Red dot" />
 			</td>
 			<td><%=tripCommentVO.getCreateTime()%></td>
 			<td><%=tripCommentVO.getContent()%></td>

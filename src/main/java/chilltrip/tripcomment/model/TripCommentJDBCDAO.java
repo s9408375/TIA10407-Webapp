@@ -11,7 +11,7 @@ public class TripCommentJDBCDAO implements TripCommentDAO_interface {
 	String userid = "root";
 	String passwd = "123456";
 
-	private static final String INSERT_STMT = "INSERT INTO trip_comment (member_id,trip_id,score,photo,create_time,content) VALUES (?, ?, ?, ?, ?, ?, ?)";
+	private static final String INSERT_STMT = "INSERT INTO trip_comment (member_id,trip_id,score,photo,create_time,content) VALUES (?, ?, ?, ?, ?, ?)";
 	private static final String GET_ALL_STMT = "SELECT trip_comment_id,member_id,trip_id,score,photo,create_time,content FROM trip_comment order by trip_comment_id";
 	private static final String GET_ONE_STMT = "SELECT trip_comment_id,member_id,trip_id,score,photo,create_time,content FROM trip_comment where trip_comment_id = ?";
 	private static final String DELETE = "DELETE FROM trip_comment where trip_comment_id = ?";

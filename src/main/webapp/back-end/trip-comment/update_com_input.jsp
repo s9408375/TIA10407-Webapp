@@ -85,17 +85,15 @@ th, td {
 			</tr>
 			<tr>
 				<td>會員ID:</td>
-				<td><input type="TEXT" name="memberId"
-					value="<%=tripCommentVO.getMemberId()%>" size="45" /></td>
+				<td><%=tripCommentVO.getMemberId()%></td>
 			</tr>
 			<tr>
 				<td>行程ID:</td>
-				<td><input type="TEXT" name="tripId"
-					value="<%=tripCommentVO.getTripId()%>" size="45" /></td>
+				<td><%=tripCommentVO.getTripId()%></td>
 			</tr>
 			<tr>
 				<td>建立日期:</td>
-				<td><input name="createTime" id="f_date1" type="text"></td>
+				<td><%=tripCommentVO.getCreateTime()%></td>
 			</tr>
 			<tr>
 				<td>星星數:</td>

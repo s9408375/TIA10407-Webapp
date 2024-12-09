@@ -1,13 +1,17 @@
 package chilltrip.tripcomment.controller;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -16,6 +20,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
+import javax.sql.DataSource;
 
 import chilltrip.tripcomment.model.TripCommentService;
 import chilltrip.tripcomment.model.TripCommentVO;
@@ -23,6 +28,21 @@ import chilltrip.tripcomment.model.TripCommentVO;
 @MultipartConfig
 @WebServlet("/back-end/trip-comment/comment.do")
 public class TripCommentServlet extends HttpServlet {
+
+	private DataSource dataSource;
+
+	@Override
+	public void init() throws ServletException {
+		try {
+			// 獲取 JNDI Context
+			Context initContext = new InitialContext();
+			// 查找 DataSource 資源
+			dataSource = (DataSource) initContext.lookup("java:comp/env/jdbc/TestDB");
+		} catch (NamingException e) {
+			e.printStackTrace();
+			throw new ServletException("JNDI DataSource 初始化失敗: " + e.getMessage());
+		}
+	}
 
 	public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
 		doPost(req, res);
@@ -106,7 +126,7 @@ public class TripCommentServlet extends HttpServlet {
 			successView.forward(req, res);
 		}
 
-		if ("update".equals(action)) { // 來自update_emp_input.jsp的請求
+		if ("update".equals(action)) { // 來自update_com_input.jsp的請求
 
 			List<String> errorMsgs = new LinkedList<String>();
 			// Store this set in the request scope, in case we need to
@@ -116,48 +136,21 @@ public class TripCommentServlet extends HttpServlet {
 			/*************************** 1.接收請求參數 - 輸入格式的錯誤處理 **********************/
 			Integer tripCommentId = Integer.valueOf(req.getParameter("tripCommentId").trim());
 
-			String memberId = req.getParameter("memberId");
-			Integer memberId2 = null;
-			if (memberId == null || memberId.trim().isEmpty()) {
+			Integer memberId = Integer.valueOf(req.getParameter("memberId"));
+			if (memberId == null) {
 				errorMsgs.add("會員ID: 請勿空白");
-			} else if (memberId.matches("[0-9]+")) {
-				try {
-					memberId2 = Integer.valueOf(memberId);
-				} catch (NumberFormatException e) {
-					errorMsgs.add("會員ID 格式錯誤");
-				}
 			} else {
 				errorMsgs.add("會員ID只能是數字");
 			}
 
-			String tripId = req.getParameter("tripId");
-			Integer tripId2 = null;
-			if (tripId == null || tripId.trim().isEmpty()) {
+			Integer tripId = Integer.valueOf(req.getParameter("tripId"));
+			if (tripId == null) {
 				errorMsgs.add("行程ID: 請勿空白");
-			} else if (tripId.matches("[0-9]+")) {
-				try {
-					tripId2 = Integer.valueOf(tripId);
-				} catch (NumberFormatException e) {
-					errorMsgs.add("行程ID 格式錯誤");
-				}
 			} else {
 				errorMsgs.add("行程ID只能是數字");
 			}
 
 			TripCommentVO tripCommentVO = new TripCommentVO();
-
-			// 將有效的 memberId2 和 tripId2 設定到 VO
-			if (memberId2 != null) {
-				tripCommentVO.setMemberId(memberId2);
-			} else {
-				errorMsgs.add("無效的會員ID");
-			}
-
-			if (tripId2 != null) {
-				tripCommentVO.setTripId(tripId2);
-			} else {
-				errorMsgs.add("無效的行程ID");
-			}
 
 			Integer score = null;
 			try {
@@ -168,59 +161,72 @@ public class TripCommentServlet extends HttpServlet {
 			}
 
 			// 處理圖片上傳
-			byte[] photo = null; // 默認值為 null
-
+			byte[] photo = null; // 初始化圖片資料為 null
 			Part filePart = req.getPart("photo");
+
 			if (filePart != null) {
-				
 				String fileName = filePart.getSubmittedFileName();
-				
+
 				if (fileName != null && !fileName.isEmpty()) {
-					// 設置圖片存儲路徑
-					String path = getServletContext().getRealPath("/") + "resource" + File.separator + "images"
-							+ File.separator + fileName;
-
-					// 確保目錄存在
-					File uploadDir = new File(
-							getServletContext().getRealPath("/") + "resource" + File.separator + "images");
-
-					if (!uploadDir.exists()) {
-						uploadDir.mkdir(); // 若不存在，則創建該目錄
-					}
-
-					// 處理文件寫入
-					InputStream inputStream = null;
-					FileOutputStream outputStream = null;
 					try {
-						inputStream = filePart.getInputStream();
-						outputStream = new FileOutputStream(path);
-
-						byte[] buffer = new byte[1024];
-						int bytesRead;
-						while ((bytesRead = inputStream.read(buffer)) != -1) {
-							outputStream.write(buffer, 0, bytesRead);
+						// 檢查檔案類型
+						String contentType = filePart.getContentType();
+						if (!contentType.startsWith("image/")) {
+							throw new IllegalArgumentException("上傳的檔案不是圖片類型");
 						}
-						// 讀取檔案為 byte[]
-						photo = new byte[(int) filePart.getSize()];
-						inputStream.read(photo);  // 將圖片資料讀入 byte[]
 
-					} catch (IOException e) {
+						// 檢查檔案大小（限制為 2MB）
+						long fileSize = filePart.getSize();
+						if (fileSize > 2 * 1024 * 1024) {
+							throw new IllegalArgumentException("圖片大小超過限制（2MB）");
+						}
 
-						e.printStackTrace();
-
-					} finally {
+						// 讀取圖片資料
+						InputStream inputStream = null;
 						try {
-							if(outputStream != null){
-								outputStream.close();
+							inputStream = filePart.getInputStream();
+							photo = inputStream.readAllBytes(); // 將 InputStream 轉換為 byte[]
+						} finally {
+							if (inputStream != null) {
+								inputStream.close(); // 手動關閉 InputStream
 							}
-							if(inputStream != null){
-								inputStream.close();
-							}
-						} catch (IOException e) {
-							e.printStackTrace();
 						}
-					}
 
+					} catch (IllegalArgumentException e) {
+						req.setAttribute("error", e.getMessage());
+					} catch (IOException e) {
+						e.printStackTrace();
+						req.setAttribute("error", "圖片上傳失敗，請稍後再試");
+					}
+				} else {
+					req.setAttribute("error", "未選擇圖片");
+				}
+			}
+
+			// 如果 photo 為 null，則不進行資料庫操作
+			if (photo != null) {
+				Connection conn = null;
+				PreparedStatement ps = null;
+				try {
+					// 此處將圖片資料新增進資料庫
+					conn = dataSource.getConnection();
+					ps = conn.prepareStatement("INSERT INTO your_table (photo_column) VALUES (?)");
+					ps.setBytes(1, photo);
+					ps.executeUpdate();
+					req.setAttribute("message", "圖片上傳成功！");
+				} catch (SQLException e) {
+					e.printStackTrace();
+					req.setAttribute("error", "圖片儲存到資料庫失敗");
+				} finally {
+					// 關閉資源
+					try {
+						if (ps != null)
+							ps.close();
+						if (conn != null)
+							conn.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 
@@ -240,10 +246,9 @@ public class TripCommentServlet extends HttpServlet {
 				errorMsgs.add("請填寫留言");
 			}
 
-
 			tripCommentVO.setTripCommentId(tripCommentId);
-			tripCommentVO.setMemberId(memberId2);
-			tripCommentVO.setTripId(tripId2);
+			tripCommentVO.setMemberId(memberId);
+			tripCommentVO.setTripId(tripId);
 			tripCommentVO.setScore(score);
 			tripCommentVO.setPhoto(photo);
 			tripCommentVO.setCreateTime(createTime);
@@ -259,7 +264,7 @@ public class TripCommentServlet extends HttpServlet {
 
 			/*************************** 2.開始修改資料 *****************************************/
 			TripCommentService tripCommentService = new TripCommentService();
-			tripCommentVO = tripCommentService.updateTripComment(tripCommentId, memberId2, tripId2, score, photo,
+			tripCommentVO = tripCommentService.updateTripComment(tripCommentId, memberId, tripId, score, photo,
 					createTime, content);
 
 			/*************************** 3.修改完成,準備轉交(Send the Success view) *************/
@@ -277,49 +282,49 @@ public class TripCommentServlet extends HttpServlet {
 			req.setAttribute("errorMsgs", errorMsgs);
 
 			/*********************** 1.接收請求參數 - 輸入格式的錯誤處理 *************************/
-			
-			String memberId = req.getParameter("memberId");
-			Integer memberId2 = null;
-			if (memberId == null || memberId.trim().isEmpty()) {
-				errorMsgs.add("會員ID: 請勿空白");
-			} else if (memberId.matches("[0-9]+")) {
-				try {
-					memberId2 = Integer.valueOf(memberId);
-				} catch (NumberFormatException e) {
-					errorMsgs.add("會員ID 格式錯誤");
-				}
-			} else {
-				errorMsgs.add("會員ID只能是數字");
-			}
 
-			String tripId = req.getParameter("tripId");
-			Integer tripId2 = null;
-			if (tripId == null || tripId.trim().isEmpty()) {
-				errorMsgs.add("行程ID: 請勿空白");
-			} else if (tripId.matches("[0-9]+")) {
-				try {
-					tripId2 = Integer.valueOf(tripId);
-				} catch (NumberFormatException e) {
-					errorMsgs.add("行程ID 格式錯誤");
-				}
-			} else {
-				errorMsgs.add("行程ID只能是數字");
-			}
+			Integer memberId = Integer.valueOf(req.getParameter("memberId"));
+//			Integer memberId2 = null;
+//			if (memberId == null || memberId.trim().isEmpty()) {
+//				errorMsgs.add("會員ID: 請勿空白");
+//			} else if (memberId.matches("[0-9]+")) {
+//				try {
+//					memberId2 = Integer.valueOf(memberId);
+//				} catch (NumberFormatException e) {
+//					errorMsgs.add("會員ID 格式錯誤");
+//				}
+//			} else {
+//				errorMsgs.add("會員ID只能是數字");
+//			}
+
+			Integer tripId = Integer.valueOf(req.getParameter("tripId"));
+//			Integer tripId2 = null;
+//			if (tripId == null || tripId.trim().isEmpty()) {
+//				errorMsgs.add("行程ID: 請勿空白");
+//			} else if (tripId.matches("[0-9]+")) {
+//				try {
+//					tripId2 = Integer.valueOf(tripId);
+//				} catch (NumberFormatException e) {
+//					errorMsgs.add("行程ID 格式錯誤");
+//				}
+//			} else {
+//				errorMsgs.add("行程ID只能是數字");
+//			}
 
 			TripCommentVO tripCommentVO = new TripCommentVO();
 
-			// 將有效的 memberId2 和 tripId2 設定到 VO
-			if (memberId2 != null) {
-				tripCommentVO.setMemberId(memberId2);
-			} else {
-				errorMsgs.add("無效的會員ID");
-			}
-
-			if (tripId2 != null) {
-				tripCommentVO.setTripId(tripId2);
-			} else {
-				errorMsgs.add("無效的行程ID");
-			}
+//			// 將有效的 memberId2 和 tripId2 設定到 VO
+//			if (memberId2 != null) {
+//				tripCommentVO.setMemberId(memberId2);
+//			} else {
+//				errorMsgs.add("無效的會員ID");
+//			}
+//
+//			if (tripId2 != null) {
+//				tripCommentVO.setTripId(tripId2);
+//			} else {
+//				errorMsgs.add("無效的行程ID");
+//			}
 
 			Integer score = null;
 			try {
@@ -330,59 +335,72 @@ public class TripCommentServlet extends HttpServlet {
 			}
 
 			// 處理圖片上傳
-			byte[] photo = null; // 默認值為 null
-
+			byte[] photo = null; // 初始化圖片資料為 null
 			Part filePart = req.getPart("photo");
+
 			if (filePart != null) {
-				
 				String fileName = filePart.getSubmittedFileName();
-				
+
 				if (fileName != null && !fileName.isEmpty()) {
-					// 設置圖片存儲路徑
-					String path = getServletContext().getRealPath("/") + "resource" + File.separator + "images"
-							+ File.separator + fileName;
-
-					// 確保目錄存在
-					File uploadDir = new File(
-							getServletContext().getRealPath("/") + "resource" + File.separator + "images");
-
-					if (!uploadDir.exists()) {
-						uploadDir.mkdir(); // 若不存在，則創建該目錄
-					}
-
-					// 處理文件寫入
-					InputStream inputStream = null;
-					FileOutputStream outputStream = null;
 					try {
-						inputStream = filePart.getInputStream();
-						outputStream = new FileOutputStream(path);
-
-						byte[] buffer = new byte[1024];
-						int bytesRead;
-						while ((bytesRead = inputStream.read(buffer)) != -1) {
-							outputStream.write(buffer, 0, bytesRead);
+						// 檢查檔案類型
+						String contentType = filePart.getContentType();
+						if (!contentType.startsWith("image/")) {
+							throw new IllegalArgumentException("上傳的檔案不是圖片類型");
 						}
-						// 讀取檔案為 byte[]
-						photo = new byte[(int) filePart.getSize()];
-						inputStream.read(photo);  // 將圖片資料讀入 byte[]
 
-					} catch (IOException e) {
+						// 檢查檔案大小（限制為 2MB）
+						long fileSize = filePart.getSize();
+						if (fileSize > 2 * 1024 * 1024) {
+							throw new IllegalArgumentException("圖片大小超過限制（2MB）");
+						}
 
-						e.printStackTrace();
-
-					} finally {
+						// 讀取圖片資料
+						InputStream inputStream = null;
 						try {
-							if(outputStream != null){
-								outputStream.close();
+							inputStream = filePart.getInputStream();
+							photo = inputStream.readAllBytes(); // 將 InputStream 轉換為 byte[]
+						} finally {
+							if (inputStream != null) {
+								inputStream.close(); // 手動關閉 InputStream
 							}
-							if(inputStream != null){
-								inputStream.close();
-							}
-						} catch (IOException e) {
-							e.printStackTrace();
 						}
-					}
 
+					} catch (IllegalArgumentException e) {
+						req.setAttribute("error", e.getMessage());
+					} catch (IOException e) {
+						e.printStackTrace();
+						req.setAttribute("error", "圖片上傳失敗，請稍後再試");
+					}
+				} else {
+					req.setAttribute("error", "未選擇圖片");
+				}
+			}
+
+			// 如果 photo 為 null，則不進行資料庫操作
+			if (photo != null) {
+				Connection conn = null;
+				PreparedStatement ps = null;
+				try {
+					// 此處將圖片資料新增進資料庫
+					conn = dataSource.getConnection();
+					ps = conn.prepareStatement("INSERT INTO your_table (photo_column) VALUES (?)");
+					ps.setBytes(1, photo);
+					ps.executeUpdate();
+					req.setAttribute("message", "圖片上傳成功！");
+				} catch (SQLException e) {
+					e.printStackTrace();
+					req.setAttribute("error", "圖片儲存到資料庫失敗");
+				} finally {
+					// 關閉資源
+					try {
+						if (ps != null)
+							ps.close();
+						if (conn != null)
+							conn.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 
@@ -402,8 +420,8 @@ public class TripCommentServlet extends HttpServlet {
 				errorMsgs.add("請填寫留言");
 			}
 
-			tripCommentVO.setMemberId(memberId2);
-			tripCommentVO.setTripId(tripId2);
+			tripCommentVO.setMemberId(memberId);
+			tripCommentVO.setTripId(tripId);
 			tripCommentVO.setScore(score);
 			tripCommentVO.setPhoto(photo);
 			tripCommentVO.setCreateTime(createTime);
@@ -419,8 +437,7 @@ public class TripCommentServlet extends HttpServlet {
 
 			/*************************** 2.開始新增資料 ***************************************/
 			TripCommentService tripCommentService = new TripCommentService();
-			tripCommentVO = tripCommentService.addTripComment(memberId2, tripId2, score, photo,
-					createTime, content);
+			tripCommentVO = tripCommentService.addTripComment(memberId, tripId, score, photo, createTime, content);
 
 			/*************************** 3.新增完成,準備轉交(Send the Success view) ***********/
 			String url = "/back-end/trip-comment/listAllCom.jsp";
