@@ -86,8 +86,7 @@ img#photo {
 			<th>§R°£</th>
 		</tr>
 		<%@ include file="page1.file"%>
-		<c:forEach var="tripCommentVO" items="${list}" begin="<%=pageIndex%>"
-			end="<%=pageIndex+rowsPerPage-1%>">
+		<c:forEach var="tripCommentVO" items="${list}" begin="<%=pageIndex%>" end="<%=pageIndex+rowsPerPage-1%>">
 
 			<tr>
 				<td>${tripCommentVO.tripCommentId}</td>

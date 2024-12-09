@@ -10,7 +10,7 @@
 
 <html>
 <head>
-<title>單一行程留言 - listOneCom.jsp</title>
+<title>單一行程留言 - listOneCom-1.jsp</title>
 
 <style>
 table#table-1 {
@@ -81,7 +81,7 @@ img#photo {
 			<th>建立時間</th>
 			<th>留言內容</th>
 		</tr>
-	<c:forEach var="tripCommentVO" items="${tripCommentVOSet}" >
+	
 		<tr>
 			<td>${tripCommentVO.tripCommentId}</td>
 			<td>${tripCommentVO.memberId}</td>
@@ -91,7 +91,7 @@ img#photo {
 			<td>${tripCommentVO.createTime}</td>
 			<td>${tripCommentVO.content}</td>
 		</tr>
-	</c:forEach>
+	
 	</table>
 
 </body>

@@ -44,7 +44,7 @@ public class TripCommentService {
 		
 		dao.update(tripCommentVO);
 
-		return tripCommentVO;
+		return dao.findByPrimaryKey(tripCommentId);
 	}
 
 	public TripCommentVO getTripComment(Integer tripCommentId) {

@@ -61,7 +61,7 @@
   </li>
 
   <jsp:useBean id="tripCommentService" scope="page" class="chilltrip.tripcomment.model.TripCommentService" />
-   
+   <jsp:useBean id="memberService" scope="page" class="chilltrip.member.model.MemberService" />
   <li>
      <FORM METHOD="post" ACTION="comment.do" >
        <b>選擇行程留言ID:</b>
@@ -78,12 +78,12 @@
   <li>
      <FORM METHOD="post" ACTION="comment.do" >
        <b>選擇會員ID:</b>
-       <select size="1" name="tripCommentId">
-         <c:forEach var="tripCommentVO" items="${tripCommentService.all}" > 
-          <option value="${tripCommentVO.tripCommentId}">${tripCommentVO.memberId}
+       <select size="1" name="memberId">
+         <c:forEach var="memberVO" items="${memberService.all}" > 
+          <option value="${memberVO.memberId}">${memberVO.name}
          </c:forEach>   
        </select>
-       <input type="hidden" name="action" value="getOne_For_Display">
+       <input type="hidden" name="action" value="getOne_by_MemberId">
        <input type="submit" value="送出">
      </FORM>
   </li>

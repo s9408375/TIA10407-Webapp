@@ -81,9 +81,6 @@ th, td {
 		enctype="multipart/form-data">
 		<table>
 
-
-
-
 			<tr>
 				<td>會員ID:</td>
 				<td><input type="TEXT" name="memberId"
@@ -120,15 +117,6 @@ th, td {
 
 			<jsp:useBean id="tripCommentService" scope="page"
 				class="chilltrip.tripcomment.model.TripCommentService" />
-<!-- 			<tr> -->
-<!-- 				<td>會員:<font color=red><b>*</b></font></td> -->
-<!-- 				<td><select size="1" name="memberId"> -->
-<%-- 						<c:forEach var="memberVO" items="${memberService.all}"> --%>
-<%-- 							<option value="${memberVO.memberId}" --%>
-<%-- 								${(tripCommentVO.memberId==memberVO.memberId)? 'selected':'' }>${memberVO.name} --%>
-<%-- 						</c:forEach> --%>
-<!-- 				</select></td> -->
-<!-- 			</tr> -->
 
 		</table>
 		<br> <input type="hidden" name="action" value="insert"> <input

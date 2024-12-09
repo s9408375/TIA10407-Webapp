@@ -20,8 +20,8 @@ public class MemberJDBCDAO implements MemberDAO_interface {
 	private static final String GET_ONE_STMT = "SELECT member_id,email,account,password,name,phone,status,create_time,nick_name,gender,birthday,company_id,E_receipt_carrier,credit_card,tracking_number,fans_number,photo FROM member WHERE member_id = ?";
 	private static final String DELETE_MEMBER = "DELETE FROM member WHERE member_id = ?";
 	private static final String DELETE_TRIP_COMMENT = "DELETE FROM trip_comment WHERE member_id = ?";
-	private static final String UPDATE = "UPDATE member set email=?,account=?,password=?,name=?,phone=?,status=?,create_time=?,nick_name=?,gender=?,birthday=?,company_id=?,E_receipt_carrier=?,credit_card=?,tracking_number=?,fans_number=?,photo=? WHERE member_id = ?";
-	private static final String GET_TRIPCOMMENT_BY_MEMBER = "SELECT trip_comment_id,member_id,trip_id,score,photo,create_time,content FROM trip_comment WHERE meber=? ORDER BY trip_comment_id";
+	private static final String UPDATE = "UPDATE member set email=?,account=?,password=?,name=?,phone=?,status=?,create_time=?,nick_name=?,gender=?,birthday=?,company_id=?,E_receipt_carrier=?,credit_card=?,tracking_number=?,fans_number=?,photo=? WHERE member_id";
+	private static final String GET_TRIPCOMMENT_BY_MEMBER = "SELECT * FROM tia104g2.trip_comment WHERE member_id=? ORDER BY trip_comment_id";
 	
 	@Override
 	public void insert(MemberVO memberVO) {
@@ -355,20 +355,24 @@ public class MemberJDBCDAO implements MemberDAO_interface {
 			Class.forName(driver);
 			con = DriverManager.getConnection(url, userid, password);
 			pstmt = con.prepareStatement(GET_TRIPCOMMENT_BY_MEMBER);
+			pstmt.setInt(1, memberId);
 			rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
 				tripCommentVO = new TripCommentVO();
-				tripCommentVO.setTripId(rs.getInt("trip_comment_id"));
-				tripCommentVO.setMemberId(rs.getInt("memberId"));
+				tripCommentVO.setTripCommentId(rs.getInt("trip_comment_id"));
 				tripCommentVO.setTripId(rs.getInt("trip_id"));
 				tripCommentVO.setScore(rs.getInt("score"));
 				tripCommentVO.setPhoto(rs.getBytes("photo"));
 				tripCommentVO.setCreateTime(rs.getTimestamp("create_time"));
 				tripCommentVO.setContent(rs.getString("content"));
+				tripCommentVO.setMemberId(rs.getInt("member_id"));
+				if(rs.getBytes("photo") != null) {
+					tripCommentVO.setPhoto_base64(new String(Base64.getEncoder().encodeToString(rs.getBytes("photo"))));	
+				}
 				set.add(tripCommentVO);
 			}
-			
+
 		}catch(ClassNotFoundException e) {
 			throw new RuntimeException("無法載入資料庫驅動程式" + e.getMessage());
 		}catch(SQLException se) {
@@ -397,7 +401,7 @@ public class MemberJDBCDAO implements MemberDAO_interface {
 			}
 		}
 		
-		return null;
+		return set;
 	}
 
 	public static void main(String[] args) {
@@ -496,26 +500,26 @@ public class MemberJDBCDAO implements MemberDAO_interface {
 //		dao.update(memberVO2);
 //		
 //		// 查詢
-//		MemberVO memberVO3 = dao.findByPrimaryKey(4);
-//		System.out.print(memberVO3.getMemberId() + ",");
-//		System.out.print(memberVO3.getEmail() + ",");
-//		System.out.print(memberVO3.getAccount() + ",");
-//		System.out.print(memberVO3.getPassword() + ",");
-//		System.out.print(memberVO3.getName() + ",");
-//		System.out.print(memberVO3.getPhone() + ",");
-//		System.out.print(memberVO3.getStatus() + ",");
-//		System.out.print(memberVO3.getCreateTime() + ",");
-//		System.out.print(memberVO3.getNickName() + ",");
-//		System.out.print(memberVO3.getGender() + ",");
-//		System.out.print(memberVO3.getBirthday() + ",");
-//		System.out.print(memberVO3.getCompanyId() + ",");
-//		System.out.print(memberVO3.getEreceiptCarrier() + ",");
-//		System.out.print(memberVO3.getCreditCard() + ",");
-//		System.out.print(memberVO3.getTrackingNumber() + ",");
-//		System.out.print(memberVO3.getFansNumber() + ",");
-//		System.out.print(memberVO3.getPhoto());
-//		System.out.println("---------------------");
-//		
+		MemberVO memberVO3 = dao.findByPrimaryKey(1);
+		System.out.print(memberVO3.getMemberId() + ",");
+		System.out.print(memberVO3.getEmail() + ",");
+		System.out.print(memberVO3.getAccount() + ",");
+		System.out.print(memberVO3.getPassword() + ",");
+		System.out.print(memberVO3.getName() + ",");
+		System.out.print(memberVO3.getPhone() + ",");
+		System.out.print(memberVO3.getStatus() + ",");
+		System.out.print(memberVO3.getCreateTime() + ",");
+		System.out.print(memberVO3.getNickName() + ",");
+		System.out.print(memberVO3.getGender() + ",");
+		System.out.print(memberVO3.getBirthday() + ",");
+		System.out.print(memberVO3.getCompanyId() + ",");
+		System.out.print(memberVO3.getEreceiptCarrier() + ",");
+		System.out.print(memberVO3.getCreditCard() + ",");
+		System.out.print(memberVO3.getTrackingNumber() + ",");
+		System.out.print(memberVO3.getFansNumber() + ",");
+		System.out.print(memberVO3.getPhoto());
+		System.out.println("---------------------");
+		
 //		// 查詢會員
 //		List<MemberVO> list = dao.getAll();
 //		for(MemberVO member : list) {
